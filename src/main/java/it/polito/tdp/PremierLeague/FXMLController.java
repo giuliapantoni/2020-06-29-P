@@ -7,7 +7,11 @@ package it.polito.tdp.PremierLeague;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
+
+import it.polito.tdp.PremierLeague.db.Adiacenza;
+import it.polito.tdp.PremierLeague.model.Match;
 import it.polito.tdp.PremierLeague.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -39,7 +43,7 @@ public class FXMLController {
     private TextField txtMinuti; // Value injected by FXMLLoader
 
     @FXML // fx:id="cmbMese"
-    private ComboBox<?> cmbMese; // Value injected by FXMLLoader
+    private ComboBox<Integer> cmbMese; // Value injected by FXMLLoader
 
     @FXML // fx:id="cmbM1"
     private ComboBox<?> cmbM1; // Value injected by FXMLLoader
@@ -52,11 +56,49 @@ public class FXMLController {
 
     @FXML
     void doConnessioneMassima(ActionEvent event) {
+    	txtResult.clear();
+    	Integer min = null ;
+    	try {
+    		min = Integer.parseInt(txtMinuti.getText());
+    	}catch (NumberFormatException e) {
+			txtResult.appendText("Errore nell'inserimento del MIN!\n" );
+			return;
+		}
+    	Integer mese = this.cmbMese.getValue();
+    	if(mese== null) {
+    		txtResult.appendText("Devi prima scegliere il mese!\n");
+    		return;
+    	}
+    	Map<Integer, Match> idMap = this.model.getMap();
+    	txtResult.appendText("Coppie con connessione massima: \n");
+    	List<Adiacenza> collegamenti = this.model.getCollegamenti(mese, min, idMap);
+    	int pesoMax = collegamenti.get(0).getPeso(); 
+    	for(Adiacenza a : collegamenti) {
+    		if(a.getPeso() == pesoMax) {
+    			txtResult.appendText(a + "\n");
+    		}
+    	}
     	
     }
 
     @FXML
     void doCreaGrafo(ActionEvent event) {
+    	txtResult.clear();
+    	Integer min = null ;
+    	try {
+    		min = Integer.parseInt(txtMinuti.getText());
+    	}catch (NumberFormatException e) {
+			txtResult.appendText("Errore nell'inserimento del MIN!\n" );
+			return;
+		}
+    	Integer mese = this.cmbMese.getValue();
+    	if(mese== null) {
+    		txtResult.appendText("Devi prima scegliere il mese!\n");
+    		return;
+    	}
+    	Map<Integer, Match> idMap = this.model.getMap();
+    	this.model.creaGrafo(mese, idMap);
+    	txtResult.appendText(String.format("Creato grafo con %d vertici e %d archi!", this.model.numVertici(), this.model.numArchi()));
     	
     }
 
@@ -79,7 +121,7 @@ public class FXMLController {
     
     public void setModel(Model model) {
     	this.model = model;
-  
+    	this.cmbMese.getItems().addAll(this.model.getMesi());
     }
     
     

@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import it.polito.tdp.PremierLeague.model.Action;
 import it.polito.tdp.PremierLeague.model.Match;
 import it.polito.tdp.PremierLeague.model.Player;
@@ -88,5 +90,119 @@ public class PremierLeagueDAO {
 			return null;
 		}
 	}
+	
+	
+	public List<Integer> getMesi(){
+		String sql = "SELECT DISTINCT MONTH(DATE) AS mese " + 
+				"FROM matches " + 
+				"ORDER BY mese ASC " ;
+		List<Integer> result = new ArrayList<Integer>();
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			ResultSet res = st.executeQuery();
+			while(res.next()) {
+				result.add(res.getInt("mese"));
+			}
+			conn.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+	
+	
+	public List<Match> getMatches(Integer mese, Map<Integer, Match> idMap){
+		String sql = "SELECT DISTINCT m.MatchID AS mid " + 
+				"FROM matches m " + 
+				"WHERE MONTH(DATE) = ? " ;
+		List<Match> result = new ArrayList<Match>();
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, mese);
+			ResultSet res = st.executeQuery();
+			while(res.next()) {
+				if(idMap.containsKey(res.getInt("mid"))) {
+					result.add(idMap.get(res.getInt("mid")));
+				}
+			}
+			conn.close();
+		}catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+	
+	public List<Adiacenza> getAdiacenze(Integer min, Map<Integer, Match> idMap){
+		String sql = "SELECT a1.MatchID AS m1, a2.MatchID AS m2, COUNT(DISTINCT a1.PlayerID) AS peso " + 
+				"FROM actions a1, actions a2 " + 
+				"WHERE a1.TimePlayed >= ? " + 
+				"AND a2.TimePlayed >= ? " + 
+				"AND a1.PlayerID = a2.PlayerID " + 
+				"AND a1.MatchID < a2.MatchID " + 
+				"GROUP BY m1, m2 " ;
+		List<Adiacenza> adiacenze = new ArrayList<Adiacenza>();
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, min);
+			st.setInt(2, min);
+			ResultSet res = st.executeQuery();
+			while(res.next()) {
+				if(idMap.containsKey(res.getInt("m1")) && idMap.containsKey(res.getInt("m2"))){
+					adiacenze.add(new Adiacenza(idMap.get(res.getInt("m1")), idMap.get(res.getInt("m2")), res.getInt("peso")));
+				}
+			}
+			conn.close();
+		}catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return adiacenze;
+	}
+	
+	
+	
+	public List<Adiacenza> getCollegamenti(Integer mese, Integer min, Map<Integer, Match> idMap){
+		String sql = "SELECT m1.MatchID AS id1, m2.MatchID AS id2, COUNT(*) AS conto " + 
+					"FROM actions a1, actions a2, matches m1, matches m2 " + 
+					"WHERE MONTH(m1.Date)=? AND MONTH(m2.Date)=? AND m1.MatchID>m2.MatchID AND a1.MatchID=m1.MatchID AND a2.MatchID=m2.MatchID " + 
+					"AND a1.TimePlayed>=? AND a2.TimePlayed>=? AND a1.PlayerID=a2.PlayerID " + 
+					"GROUP BY m1.MatchID, m2.MatchID " + 
+					"ORDER BY conto DESC " ;
+		List<Adiacenza> result = new ArrayList<Adiacenza>();
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, mese);
+			st.setInt(2, mese);
+			st.setInt(3, min);
+			st.setInt(4, min);
+			ResultSet res = st.executeQuery();
+			while(res.next()) {
+				result.add(new Adiacenza(idMap.get(res.getInt("id1")), idMap.get(res.getInt("id2")), res.getInt("conto")));
+			}
+			conn.close();
+		}catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return result;
+		
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 }
